@@ -65,3 +65,14 @@ class TestICICIConnector(FrappeTestCase):
 		res = self.format_make_payment({"STATUS": "SUCCESS", "RESPONSE": "SUCCESS", "UTRNUMBER": "624415243105"})
 		self.assertEqual(res.payment_status, "ACCEPTED")
 		self.assertEqual(res.summary_details, {"row-1": {"payment_status": "Accepted"}})
+
+	def test_payment_status_pending_variants_stay_pending(self):
+		connector = object.__new__(ICICIConnector)
+		connector.bulk_transaction = 0
+		connector.payment_doc = frappe._dict(name="row-1")
+		for status in ("PENDING", "PENDING FOR PROCESSING", "PENDING FOR APPROVAL"):
+			with self.subTest(status=status):
+				res = frappe._dict()
+				connector.get_formated_response({"STATUS": status, "RESPONSE": "SUCCESS", "UTRNUMBER": ""}, res, "payment_status")
+				self.assertEqual(res.payment_status, "PROCESSED")
+				self.assertEqual(res.summary_details["row-1"]["status"], "Pending")
